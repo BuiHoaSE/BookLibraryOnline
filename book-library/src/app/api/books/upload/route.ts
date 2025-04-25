@@ -1,7 +1,6 @@
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from "next/headers";
 import { NextResponse, NextRequest } from "next/server";
-import { extractTextFromPdf } from '../extract/route';
 import { Database } from '@/lib/database.types';
 
 // Define the type for book insertion
