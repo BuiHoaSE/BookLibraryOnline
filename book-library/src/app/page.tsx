@@ -22,31 +22,31 @@ export default function Home() {
       id: 1, 
       title: "To Kill a Mockingbird", 
       author: "Harper Lee", 
-      cover: "/images/covers/to-kill-a-mockingbird.png" 
+      cover: "/images/to kill a mockingbird.png" 
     },
     { 
       id: 2, 
       title: "1984", 
       author: "George Orwell", 
-      cover: "/images/covers/1984.png" 
+      cover: "/images/1984.png" 
     },
     { 
       id: 3, 
       title: "The Great Gatsby", 
       author: "F. Scott Fitzgerald", 
-      cover: "/images/covers/the-great-gatsby.png" 
+      cover: "/images/the great gatsby.png" 
     },
     { 
       id: 4, 
       title: "Pride and Prejudice", 
       author: "Jane Austen", 
-      cover: "/images/covers/pride-and-prejudice.png" 
+      cover: "/images/pride and prejudice.png" 
     },
     { 
       id: 5, 
       title: "The Catcher in the Rye", 
       author: "J.D. Salinger", 
-      cover: "/images/covers/the-catcher-in-the-rye.png" 
+      cover: "/images/the-catcher-in-the-rye.png" 
     },
   ]
 
