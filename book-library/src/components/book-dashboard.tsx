@@ -348,6 +348,19 @@ export default function BookDashboard() {
           </div>
         </main>
       </div>
+      
+      {/* Add ReadBookDialog that opens when a book is selected */}
+      {selectedBook && (
+        <ReadBookDialog
+          open={!!selectedBook}
+          onOpenChange={(open) => {
+            if (!open) setSelectedBook(null);
+          }}
+          fileUrl={selectedBook ? getBookFileUrl(selectedBook.file_url) : ''}
+          bookId={selectedBook?.id || ''}
+          onProgressSaved={refreshBooks}
+        />
+      )}
     </div>
   )
 }
