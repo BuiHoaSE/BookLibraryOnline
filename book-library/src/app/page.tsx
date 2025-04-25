@@ -18,11 +18,36 @@ export default function Home() {
   }
 
   const featuredBooks = [
-    { id: 1, title: "To Kill a Mockingbird", author: "Harper Lee", cover: "/placeholder.svg?height=300&width=200" },
-    { id: 2, title: "1984", author: "George Orwell", cover: "/placeholder.svg?height=300&width=200" },
-    { id: 3, title: "The Great Gatsby", author: "F. Scott Fitzgerald", cover: "/placeholder.svg?height=300&width=200" },
-    { id: 4, title: "Pride and Prejudice", author: "Jane Austen", cover: "/placeholder.svg?height=300&width=200" },
-    { id: 5, title: "The Catcher in the Rye", author: "J.D. Salinger", cover: "/placeholder.svg?height=300&width=200" },
+    { 
+      id: 1, 
+      title: "To Kill a Mockingbird", 
+      author: "Harper Lee", 
+      cover: "/images/covers/to-kill-a-mockingbird.png" 
+    },
+    { 
+      id: 2, 
+      title: "1984", 
+      author: "George Orwell", 
+      cover: "/images/covers/1984.png" 
+    },
+    { 
+      id: 3, 
+      title: "The Great Gatsby", 
+      author: "F. Scott Fitzgerald", 
+      cover: "/images/covers/the-great-gatsby.png" 
+    },
+    { 
+      id: 4, 
+      title: "Pride and Prejudice", 
+      author: "Jane Austen", 
+      cover: "/images/covers/pride-and-prejudice.png" 
+    },
+    { 
+      id: 5, 
+      title: "The Catcher in the Rye", 
+      author: "J.D. Salinger", 
+      cover: "/images/covers/the-catcher-in-the-rye.png" 
+    },
   ]
 
   return (
@@ -75,31 +100,44 @@ export default function Home() {
                 </p>
               </div>
             </div>
-            <div className="mx-auto grid max-w-5xl items-center gap-6 py-12 lg:grid-cols-5">
+            <div className="mx-auto grid max-w-6xl items-center gap-8 py-12 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
               {featuredBooks.map((book) => (
                 <div
                   key={book.id}
-                  className="group relative overflow-hidden rounded-lg border border-blue-200 bg-blue-50 shadow-md"
+                  className="group relative overflow-hidden rounded-lg border border-blue-200 bg-blue-50 shadow-md h-[300px] transform transition-all duration-300 hover:shadow-xl hover:-translate-y-1 flex flex-col"
                 >
                   <Link href="#" className="absolute inset-0 z-10">
                     <span className="sr-only">View {book.title}</span>
                   </Link>
-            <Image
-                    src={book.cover || "/placeholder.svg"}
-                    alt={book.title}
-                    width={200}
-                    height={300}
-                    className="object-cover transition-transform group-hover:scale-105"
-                  />
-                  <div className="absolute bottom-0 w-full bg-gradient-to-t from-blue-100/90 to-blue-50/0 p-4">
-                    <h3 className="font-medium text-sm line-clamp-1 text-blue-900">{book.title}</h3>
-                    <p className="text-xs text-blue-700">{book.author}</p>
+                  <div className="w-full h-full flex items-center justify-center p-4 flex-1">
+                    <div className="relative w-full h-full overflow-hidden rounded shadow-md transform transition-transform duration-300 group-hover:scale-105">
+                      <Image
+                        src={book.cover}
+                        alt={book.title}
+                        width={200}
+                        height={300}
+                        className="object-contain w-full h-full"
+                        onError={(e) => {
+                          // If image fails to load, replace with a placeholder
+                          const imgElement = e.currentTarget;
+                          imgElement.onerror = null; // Prevent infinite loop
+                          imgElement.src = `/placeholder.svg?text=${encodeURIComponent(book.title)}`;
+                        }}
+                      />
+                    </div>
+                  </div>
+                  <div className="absolute bottom-0 w-full bg-gradient-to-t from-blue-100/95 via-blue-100/80 to-transparent p-4">
+                    <h3 className="font-medium text-base line-clamp-1 text-blue-900">{book.title}</h3>
+                    <p className="text-sm text-blue-700">{book.author}</p>
                   </div>
                 </div>
               ))}
             </div>
-            <div className="flex justify-center">
-              <Button variant="outline" className="border-blue-600 text-blue-700 hover:bg-blue-100">
+            <div className="flex justify-center mt-4">
+              <Button 
+                variant="outline" 
+                className="border-blue-600 text-blue-700 hover:bg-blue-100 px-8 py-6 text-lg font-medium shadow-sm hover:shadow transition-all duration-300"
+              >
                 View All Books
               </Button>
             </div>

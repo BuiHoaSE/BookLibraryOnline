@@ -32,13 +32,71 @@ export default function BookDashboard() {
   useEffect(() => {
     async function fetchBooks() {
       try {
-        setLoading(true)
-        const { data: booksData, error: booksError } = await supabase
-          .from('books')
-          .select('*')
+        setLoading(true);
         
-        if (booksError) throw booksError
-        setBooks(booksData || [])
+        // Get the current user session
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session?.user) {
+          console.error('No user session found');
+          // Just fetch books without reading history
+          const { data: booksData, error: booksError } = await supabase
+            .from('books')
+            .select('*');
+          
+          if (booksError) throw booksError;
+          setBooks(booksData || []);
+          setLoading(false);
+          return;
+        }
+        
+        // Fetch books with reading history data
+        const { data: booksWithHistory, error: booksError } = await supabase
+          .rpc('get_books_with_reading_history', {
+            user_id_param: session.user.id
+          });
+        
+        if (booksError) {
+          // If the RPC function doesn't exist, fallback to a direct query
+          console.warn('RPC function not available, using direct query fallback');
+          
+          // First get all books
+          const { data: allBooks, error: allBooksError } = await supabase
+            .from('books')
+            .select('*');
+            
+          if (allBooksError) throw allBooksError;
+          
+          // Then get reading history for this user
+          const { data: readingHistory, error: historyError } = await supabase
+            .from('user_reading_history')
+            .select('*')
+            .eq('user_id', session.user.id);
+            
+          if (historyError) throw historyError;
+          
+          // Map reading history by book_id for easy lookup
+          const historyByBookId = (readingHistory || []).reduce((acc: Record<string, any>, history: any) => {
+            acc[history.book_id] = history;
+            return acc;
+          }, {} as Record<string, any>);
+          
+          // Merge books with their reading history
+          const booksWithMergedHistory = (allBooks || []).map((book: any) => {
+            const history = historyByBookId[book.id];
+            return {
+              ...book,
+              current_page: history?.current_page || 0,
+              page_count: book.page_count || history?.total_pages || 0,
+              completion_percentage: history?.completion_percentage || 0,
+              last_read_at: history?.last_read_at || null
+            };
+          });
+          
+          setBooks(booksWithMergedHistory);
+        } else {
+          // RPC function worked, use its results
+          setBooks(booksWithHistory || []);
+        }
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to fetch books')
         console.error('Error fetching books:', err)
@@ -96,16 +154,74 @@ export default function BookDashboard() {
   // Add refresh function
   const refreshBooks = async () => {
     try {
-      setLoading(true)
-      const { data: booksData, error: booksError } = await supabase
-        .from('books')
-        .select('*')
+      setLoading(true);
       
-      if (booksError) throw booksError
-      setBooks(booksData || [])
+      // Get the current user session
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) {
+        console.error('No user session found when refreshing');
+        // Just fetch books without reading history
+        const { data: booksData, error: booksError } = await supabase
+          .from('books')
+          .select('*');
+        
+        if (booksError) throw booksError;
+        setBooks(booksData || []);
+        setLoading(false);
+        return;
+      }
+      
+      // Try to use the RPC function first
+      const { data: booksWithHistory, error: booksError } = await supabase
+        .rpc('get_books_with_reading_history', {
+          user_id_param: session.user.id
+        });
+      
+      if (booksError) {
+        // If RPC fails, use the manual join approach
+        console.warn('RPC function failed on refresh, using manual join');
+        
+        // First get all books
+        const { data: allBooks, error: allBooksError } = await supabase
+          .from('books')
+          .select('*');
+          
+        if (allBooksError) throw allBooksError;
+        
+        // Then get reading history for this user
+        const { data: readingHistory, error: historyError } = await supabase
+          .from('user_reading_history')
+          .select('*')
+          .eq('user_id', session.user.id);
+          
+        if (historyError) throw historyError;
+        
+        // Map reading history by book_id for easy lookup
+        const historyByBookId = (readingHistory || []).reduce((acc: Record<string, any>, history: any) => {
+          acc[history.book_id] = history;
+          return acc;
+        }, {} as Record<string, any>);
+        
+        // Merge books with their reading history
+        const booksWithMergedHistory = (allBooks || []).map((book: any) => {
+          const history = historyByBookId[book.id];
+          return {
+            ...book,
+            current_page: history?.current_page || 0,
+            page_count: book.page_count || history?.total_pages || 0,
+            completion_percentage: history?.completion_percentage || 0,
+            last_read_at: history?.last_read_at || null
+          };
+        });
+        
+        setBooks(booksWithMergedHistory);
+      } else {
+        // RPC function worked, use its results
+        setBooks(booksWithHistory || []);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch books')
-      console.error('Error fetching books:', err)
+      console.error('Error refreshing books:', err)
     } finally {
       setLoading(false)
     }
@@ -279,13 +395,13 @@ export default function BookDashboard() {
                               onClick={() => handleReadBook(book)}
                               className="bg-black/30 hover:bg-white/20 text-white/90 group-hover:text-white border-white/20 group-hover:border-white/30 backdrop-blur-sm font-normal group-hover:font-medium transition-all duration-300 min-w-[100px] relative z-10"
                             >
-                              Read Book{book.current_page && book.page_count && Math.round((book.current_page / book.page_count) * 100) > 0 ? ` (${Math.round((book.current_page / book.page_count) * 100)}%)` : ''}
+                              Read Book{(book.completion_percentage ?? 0) > 0 ? ` (${Math.round(book.completion_percentage ?? 0)}%)` : ''}
                             </Button>
-                            {book.current_page && book.page_count && (
+                            {(book.completion_percentage ?? 0) > 0 && (
                               <div 
                                 className="absolute inset-0 bg-blue-500/70 group-hover:bg-blue-600/80 rounded-md transition-all duration-300"
                                 style={{ 
-                                  width: `${(book.current_page / book.page_count) * 100}%`,
+                                  width: `${book.completion_percentage ?? 0}%`,
                                   maxWidth: '100%'
                                 }}
                               />
@@ -322,11 +438,11 @@ export default function BookDashboard() {
                         {/* Base button with dark blue background */}
                         <div className="w-full h-9 rounded-md bg-blue-800 relative overflow-hidden shadow-sm">
                           {/* Progress fill with lighter blue */}
-                          {book.current_page && book.page_count && (
+                          {(book.completion_percentage ?? 0) > 0 && (
                             <div 
                               className="absolute inset-0 bg-blue-600 h-full"
                               style={{ 
-                                width: `${(book.current_page / book.page_count) * 100}%`,
+                                width: `${book.completion_percentage ?? 0}%`,
                               }}
                             />
                           )}
@@ -336,7 +452,7 @@ export default function BookDashboard() {
                             className="absolute inset-0 w-full h-full flex items-center justify-center text-white font-medium text-sm"
                             onClick={() => handleReadBook(book)}
                           >
-                            Read Book{book.current_page && book.page_count && Math.round((book.current_page / book.page_count) * 100) > 0 ? ` (${Math.round((book.current_page / book.page_count) * 100)}%)` : ''}
+                            Read Book{(book.completion_percentage ?? 0) > 0 ? ` (${Math.round(book.completion_percentage ?? 0)}%)` : ''}
                           </button>
                         </div>
                       </div>

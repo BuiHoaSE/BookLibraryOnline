@@ -1,0 +1,16 @@
+Book Cover Image Files
+
+Place the following book cover images in this directory:
+
+1. to-kill-a-mockingbird.jpg - Cover of "To Kill a Mockingbird" by Harper Lee
+2. 1984.jpg - Cover of "1984" by George Orwell
+3. the-great-gatsby.jpg - Cover of "The Great Gatsby" by F. Scott Fitzgerald
+4. pride-and-prejudice.jpg - Cover of "Pride and Prejudice" by Jane Austen
+5. the-catcher-in-the-rye.jpg - Cover of "The Catcher in the Rye" by J.D. Salinger
+
+These image files should be high-quality JPEG files of the book covers shown in the reference images.
+
+For best results:
+- Images should be consistently sized (recommended 300x450px)
+- Use clear, legible covers
+- Ensure images are properly cropped to show just the book cover 

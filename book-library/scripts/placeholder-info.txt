@@ -1,0 +1,24 @@
+BOOK COVER PNG INSTRUCTIONS
+
+To add the book cover PNG files to your application:
+
+1. Save the book cover images you showed in your messages as PNG files
+2. Rename them according to this naming convention:
+   - to-kill-a-mockingbird.png
+   - 1984.png
+   - the-great-gatsby.png
+   - pride-and-prejudice.png
+   - the-catcher-in-the-rye.png
+
+3. Place these PNG files in:
+   D:\BookLibraryProject\book-library\public\images\covers\
+
+4. If you don't have the original images, search for the book covers online and 
+   save images that match the dimensions of approximately 200px width by 300px height.
+
+The application is now configured to display these PNG images directly. 
+The error handling in the application will automatically use placeholder text
+if any image can't be found.
+
+The SVG files created earlier can also serve as placeholders until you add 
+the actual PNG images. 

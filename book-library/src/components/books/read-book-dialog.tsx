@@ -146,33 +146,66 @@ export function ReadBookDialog({ open, onOpenChange, fileUrl, bookId, onProgress
   // Load initial page from database
   const loadInitialPage = async () => {
     try {
-      const { data: book, error } = await supabase
-        .from('books')
-        .select('current_page')
-        .eq('id', bookId)
-        .single()
+      // Get the current user session
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) {
+        console.error('No user session found');
+        setInitialPage(1);
+        setCurrentPage(1);
+        lastPageRef.current = 1;
+        setManualPage("1");
+        setInitialPageLoaded(true);
+        setIsLoading(false);
+        return;
+      }
 
-      if (error) throw error
+      // Get book details to know total pages
+      const { data: book, error: bookError } = await supabase
+        .from('books')
+        .select('page_count')
+        .eq('id', bookId)
+        .single();
+
+      if (bookError) {
+        console.error('Error fetching book details:', bookError);
+      }
       
-      const page = book?.current_page || 1
-      setInitialPage(page)
-      setCurrentPage(page)
-      lastPageRef.current = page
-      setManualPage(page.toString())
-      setInitialPageLoaded(true)
+      const totalPages = book?.page_count || 1;
+
+      // Try to find user's reading history for this book
+      const { data: readingHistory, error: historyError } = await supabase
+        .from('user_reading_history')
+        .select('current_page')
+        .eq('user_id', session.user.id)
+        .eq('book_id', bookId)
+        .single();
+
+      if (historyError && historyError.code !== 'PGRST116') { // PGRST116 is not found
+        console.error('Error fetching reading history:', historyError);
+      }
+      
+      // Use reading history if available, otherwise default to page 1
+      const page = readingHistory?.current_page || 1;
+      console.log(`[READ-DIALOG] Loaded initial page ${page} from user history`);
+      
+      setInitialPage(page);
+      setCurrentPage(page);
+      lastPageRef.current = page;
+      setManualPage(page.toString());
+      setInitialPageLoaded(true);
     } catch (err: any) {
-      console.error('Error loading initial page:', err)
-      setErrorMessage('Failed to load reading progress')
+      console.error('Error loading initial page:', err);
+      setErrorMessage('Failed to load reading progress');
       // Set defaults on error
-      setInitialPage(1)
-      setCurrentPage(1)
-      lastPageRef.current = 1
-      setManualPage("1")
-      setInitialPageLoaded(true)
+      setInitialPage(1);
+      setCurrentPage(1);
+      lastPageRef.current = 1;
+      setManualPage("1");
+      setInitialPageLoaded(true);
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   // Handle page changes from PDF reader
   const handlePageChange = useCallback((pageNumber: number) => {
@@ -215,12 +248,68 @@ export function ReadBookDialog({ open, onOpenChange, fileUrl, bookId, onProgress
         return;
       }
 
-      const { error } = await supabase
+      // Get book details to calculate completion percentage
+      const { data: book, error: bookError } = await supabase
         .from('books')
-        .update({ current_page: page })
+        .select('page_count')
+        .eq('id', bookId)
+        .single();
+
+      if (bookError) {
+        console.error('Error fetching book details:', bookError);
+      }
+      
+      const totalPages = book?.page_count || 1;
+      const completionPercentage = Math.round((page / totalPages) * 100);
+      
+      // Check if a reading history record already exists
+      const { data: existingRecord, error: checkError } = await supabase
+        .from('user_reading_history')
+        .select('id')
+        .eq('user_id', session.user.id)
+        .eq('book_id', bookId)
+        .single();
+        
+      // If record exists, update it; otherwise, insert a new one
+      if (existingRecord) {
+        const { error: updateError } = await supabase
+          .from('user_reading_history')
+          .update({
+            current_page: page,
+            total_pages: totalPages,
+            last_read_at: new Date().toISOString(),
+            completion_percentage: completionPercentage
+          })
+          .eq('id', existingRecord.id);
+
+        if (updateError) throw updateError;
+      } else {
+        const { error: insertError } = await supabase
+          .from('user_reading_history')
+          .insert({
+            user_id: session.user.id,
+            book_id: bookId,
+            current_page: page,
+            total_pages: totalPages,
+            last_read_at: new Date().toISOString(),
+            completion_percentage: completionPercentage
+          });
+
+        if (insertError) throw insertError;
+      }
+
+      // Also update the books table for backward compatibility
+      const { error: bookUpdateError } = await supabase
+        .from('books')
+        .update({ 
+          current_page: page,
+          page_count: totalPages 
+        })
         .eq('id', bookId);
 
-      if (error) throw error;
+      if (bookUpdateError) {
+        console.warn('Error updating book record:', bookUpdateError);
+      }
 
       // Call the onProgressSaved callback if provided
       if (onProgressSaved) {

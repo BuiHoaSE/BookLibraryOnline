@@ -29,4 +29,6 @@ export type Book = {
   updated_at?: string;
   current_page?: number;
   page_count?: number;
+  completion_percentage?: number;
+  last_read_at?: string;
 }; 
